@@ -1,6 +1,6 @@
 \documentclass[11pt, a4paper]{article}
 \usepackage[utf8]{inputenc} % comment when using lualatex
-\usepackage{amsmath, amsthm, amssymb, calrsfs, wasysym, verbatim, bbm, color, graphics, geometry}
+\usepackage{amsmath, amsthm, amssymb, calrsfs, verbatim, bbm, color, graphics, geometry}
 %\usepackage[italian]{babel} % lingua e a-capo-sillabato
 \usepackage{fullpage}
 \usepackage{graphicx}
@@ -53,14 +53,44 @@ and therefore shifted what can be considered normal behaviour, as well as the at
 With these new surfaces, the entire landscape changed, particularly with the rise of APT (Advanced Persistent Threats), which can even be state-sponsored threats, that are particularly interested in IO, these APTs usually utilize a technique called "living off the land" which
 utilizes legitimate software and functions to carry out their attacks, e.g. utilizing group policy changes to gain persistance and access to restricted controls and information, another type of vulnerability that is continuedly exploited are Zero-Day attacks, which due to their nature are impossible to defend against with static hashing, so there's a need to 
 move to a dynamic analysis of behaviour, which is where statistics come into play, so that we see a threat as something that \textit{deviates from a probabilist baseline}, this is what in the modern cyberseucurity field is called \textbf{statistical anomaly detection}\cite{AdSurvey}.\\\\
-
 Anomaly detection is rooted in the statistical hypothesis that malicious activity is rare and different from normal activity. It does not ask, "Is this specific packet known to be bad?" but rather, "What is the probability that this packet belongs to the distribution of normal traffic observed over the last month?" This shift requires security professionals to abandon binary certainty in favor of probabilistic reasoning. It demands a rigorous understanding of distributions, variance, and correlation. The security analyst of the future must be as fluent in covariance matrices and p-values as they are in firewalls and encryption protocols.
 \subsection{The Dual Role of Artificial Intelligence: Tool and Target}
-As statistical methods evolved, they gave rise to Machine Learning (ML) and Artificial Intelligence (AI), which are essentially statistical inference engines operating at scale. AI has become a powerful tool for defense, capable of ingesting terabytes of log data to identify subtle correlations that elude human analysts\cite{MLsurvey}.AI-driven statistical anomaly detection has been shown to outperform traditional analytical techniques in mitigating cybersecurity risks in complex environments like wireless networks\cite{StatAn}.\\\\
-However, this reliance on AI introduces a recursive vulnerability: the statistical models themselves are now targets. We are witnessing the rise of Adversarial Machine Learning (AML), where attackers exploit the probabilistic nature of AI. By carefully crafting inputs—adversarial examples—that are statistically indistinguishable from benign data to a human but catastrophic to a model's mathematical logic, attackers can blind surveillance systems or cause autonomous vehicles to misinterpret stop signs\cite{OnTheStats}\cite{PaloAlto1}.\\\\
-Thus, the domain of AI security is not merely about securing the software code but about securing the statistical inference process. It involves using advanced statistical tests—such as Kernel Density Estimation (KDE), Maximum Mean Discrepancy (MMD), and Benford’s Law—to detect when a distribution is being manipulated. The defender must now monitor the monitor, applying statistical rigor to ensure that the AI systems protecting the network are not themselves compromised by statistical illusions.\\\\
-This report provides an exhaustive analysis of the statistical techniques underpinning modern threat detection and AI security. It explores the mathematical foundations of anomaly detection in high-dimensional spaces, the time-series analysis of network traffic, the probabilistic modeling of attack paths using Bayesian networks, and the forensic statistics required to detect adversarial manipulation.
+As statistical methods evolved, they gave rise to Machine Learning (ML) and Artificial Intelligence (AI), which are essentially statistical inference engines operating at scale. AI has become a powerful tool for defense, capable of ingesting terabytes of log data to identify subtle correlations that are impossible to spot for a human analysts\cite{MLsurvey}.AI-driven statistical anomaly detection has been shown to outperform traditional analytical techniques in mitigating cybersecurity risks in complex environments like wireless networks\cite{StatAn}.\\\\
+However, this reliance on AI introduces a recursive vulnerability: the statistical models themselves are now targets. We are witnessing the rise of Adversarial Machine Learning (AML), where attackers exploit the probabilistic nature of AI. By carefully crafting inputs that are statistically indistinguishable from benign data to a human but catastrophic to a model's mathematical logic, attackers can blind surveillance systems or cause autonomous vehicles to misinterpret stop signs\cite{OnTheStats}\cite{PaloAlto1}.\\\\
+Thus, the domain of AI security is not merely about securing the software code but about securing the statistical inference process. It involves using advanced statistical tests such as Kernel Density Estimation (KDE), Maximum Mean Discrepancy (MMD), and Benford’s Law to detect when a distribution is being manipulated. The defender must now monitor the monitor, applying statistical tools to ensure that the AI systems protecting the network are not themselves compromised by statistical illusions.\\\\
 \newpage
+\section{Statistical Anomaly Detection in Network Security}
+Network intrusion detection is the practice of monitoring network traffic for suspicious activity and unauthorized access. While rule-based systems (e.g. Snort) look for known byte sequences, statistical anomaly detection techniques build a model of what is considered 
+"normal" traffic for a network and flags certain deviations. This approach has been widely used since the 2000s, and is currently being amplified by the use of AI.
+\subsection{Gaussian Assumption and Univariate Analysis}
+To be able to distinguish normal from anomalous traffic we must assume that normality exists. The Gaussian distribution (or what we called the normal distribution) is essential for anomaly detection because it's a mathematically convenient way to define what we consider normal. In a normal distribution, around $~68\%$ of data points fall within one standard deviation (SD, $\sigma$) or the mean ($\mu$), $95\%$ within 2 SDs and $99.7\%$ within 3 SDs. Therefore we can
+statistically define anomalies as those data points that are statistically improbable, e.g. \textit{p} $ < 0.0003$.\\\\
+In the simplest scenario a security analyst may apply \textbf{univariate analysis} to examine a single variable in isolation, take for example the CPU load of a database server, to do so we have multiple ways:
+\begin{itemize}
+    \item \textbf{Grubb's test} The statistical test is used to detect a single outlier in an univariate dataset that follows a normal distribution\cite{AdSurvey}. It calculates a $G$ statistic based on the difference between the maximum deviation and the mean.
+    \item \textbf{Z-score} Modern systems utilizing the Z-score, which normalizes a data point $x$ by subtracting the mean and dividing by the standard deviation $Z=\frac{x-\mu}{\sigma}$. If the Z-score is greater than 3 this indicates that the data point is an outlier.
+\end{itemize}
+But, as we learned, univariate analysis is limited, and for modern cybersecurity applications it is insufficient, if we were to analyze data points like "high outbound network traffic", this might be benign, for example we could be doing an update or a backup, but if an attacker were to be using a low speed or low bandwidth exfiltration technique, they would stay within normal bounds ($< 2\sigma$), and even if we direct it to an unusual IP address at an unusual time, we are not analyzing this variable and therefore we ignore that. So multivariate analysis is something that isn't needed but required for cybersecurity applications.\cite{Mahalanobis}
+\subsection{Multivariate Analysis and Mahalanobis Distance}
+In network analysis, variables are often correlated, take, for example, the number of packets, it is typically correlated with the number of bytes transferred, if we were to rely on euclidean distance (which assumes independence), we might not see anomalies that arise when the relationship is broken.\\\\
+For a more practical example, consider a server that typically sends small packets (high packet count but small number of bytes for each packet) or large file transfers (high count and high packet count). If an attacker were to try and perform a buffer overflow attack, he would send a small number of extremely large packets, if we were to map this into an Euclidean space, this point might still be close to the center of a data cloud, but it has almost no \textbf{correlation} to usual traffic.\\\\
+To actually solve this we use \textbf{Mahalanobis Distance}, which measures the distance between a point $P$ and a distribution $D$, effectively it measures how many standard deviations away $P$ is from the mean of $D$, while also accounting for the covariance among the variables.\cite{Mahalanobis}\cite{AnPayload}\\\\
+The Mahalanobis distance $D_M$ of an observation vector $x = (x_1, x_2, ..., x_n)^T$  from a set of observations with mean vector $\mu = (\mu_1, \mu_2, ..., \mu_n)^T$ and covariance matrix $\Sigma$ is defined as:$$ D_M(\mathbf{x}) = \sqrt{ (\mathbf{x} - \boldsymbol{\mu})^T \mathbf{\Sigma}^{-1} (\mathbf{x} - \boldsymbol{\mu}) } $$
+where:
+\begin{itemize}
+    \item $\mathbf{x}$ is the feature vector of the incoming traffic (packet length, inter-arrival time, port number).
+    \item $\boldsymbol{\mu}$ is the mean vector calculated from the normal training data
+\end{itemize}
+The term $\Sigma^{-1}$ either whitens or decorrelates data, if two variables typically vary together (so we have an high covariance) the matrix $\Sigma$ captures this. By multiplying the inverse we penalize deviations that go against the known correlation structures.\\\\
+For example, if Variable A and Variable B usually increase together, a data point where A is high and B is low will result in a large Mahalanobis distance, identifying it as an anomaly even if the individual values of A and B are within their respective normal ranges.\\\\
+\subsection{Payload Detection}
+
+
+
+
+
+
+
 
 
 
