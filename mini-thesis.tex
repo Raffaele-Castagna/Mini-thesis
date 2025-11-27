@@ -42,6 +42,7 @@
 
 \maketitle
 \tableofcontents
+
 \newpage
 \nocite{*}
 \section{Introduction}
@@ -84,10 +85,37 @@ where:
 The term $\Sigma^{-1}$ either whitens or decorrelates data, if two variables typically vary together (so we have an high covariance) the matrix $\Sigma$ captures this. By multiplying the inverse we penalize deviations that go against the known correlation structures.\\\\
 For example, if Variable A and Variable B usually increase together, a data point where A is high and B is low will result in a large Mahalanobis distance, identifying it as an anomaly even if the individual values of A and B are within their respective normal ranges.\\\\
 \subsection{Payload Detection}
-
-
-
-
+Mahalanobis distance has been used to detect anomalies in packet payloads, systems like PAYL compute the byte frequency distribution of incoming payloads and compare them to a historical profile. It is then given a score (refered to as the "distance") and if for example the payload contains a shellcode or exploit, this would alter the natural frequency of bytes found in ASCII text or common protocols, and therefore gives us a higher distance.\\\\
+The decision is typically governed by a threshold $\tau$:
+$$
+\text{Status}(\mathbf{x}) = \begin{cases}
+    \text{Anomaly} & \text{if } D_M(\mathbf{x}) > \tau \\
+    \text{Normal} & \text{if } D_M(\mathbf{x}) \le \tau
+\end{cases}
+$$
+Because the squared mahalanobis distance of a Gaussian vector still follows a Chi-squared distribution with $n$ degrees of freedom where $n$ is the number of dimensions, the threshold $\tau$ can be rigorously derived from Chi-squared tables for whatever significance level is desired.\cite{Mahalanobis}
+\subsection{Dimensionality Reduction and PCA}
+A problem that arises when using any high dimensionality dataset, be for statistics or machine learning is the \textbf{curse of dimensionality}, as the number of features (dimensions) increases, the computational cost of inverting the covariance matrix ($\Sigma^{-1}$) becomes prohibitive ($O(n^3)$), and the data becomes sparse, so distance measuring becomes less impactful.\\\\
+To counteract this we use \textbf{Principal Component Analysis}  (PCA), which uses an orthogonal transformation to covnert a set of data points that are possibly correlated with each other into a set of values of linearly uncorrelated variables which are then called \textit{principal components}. The first principal component has the largest possible variance (so it accounts for as much of the variability in the data as possible), and each succeeding component has the highest variance possible under the constraint that it is orthogonal to the preceding components.\\\\
+One of the main ways PCA is used in to visualize the clustering of malware families, most malware analysis often involves extracting thousands of features, this would be impossible manually, but even with powerful computers analyzing this raw data is expensive and difficult to visualize withouth the help of PCA and other dimensionality reduction techniques.\\\\
+Using PCA we can project high dimensionality data into lower dimensionality spaces (2D or 3D) while preserving the maximum variance. This reveals the underlying clusters of data present in malware families\cite{VisualMalware}, to be more precise:
+\begin{itemize}
+    \item \textbf{Clustering}: Different Malware families (e.g. ransomware, trojans, worms) often exhibit distinct behavioral patterns. When projected into a lower-dimensional space using PCA, these patterns can form separate clusters, making it easier to identify and categorize malware samples.
+    \item \textbf{Anomaly Detection}: PCA can also help identify outliers or novel malware variants that do not fit into existing clusters. These anomalies may represent new threats that require further investigation.
+\end{itemize}
+Nowadays, we combine PCA with other techniques and clustering algorithms like K-MEANS and ART2 (Adaptive Resonance Theory) to visualize malware families. The spatial alignment of color-coded clusters in PCA space corresponds to true malware families, proving that the statistical variance capture by PCA corresponds to the function differences in malware code.\cite{ART2}
+\begin{center}
+    \includegraphics[width=0.8\textwidth]{images/Clustering-ART2-visualisation-using-Principal-Component-Analysis-PCA-with-a-After.png}
+\end{center}
+As shown in the image above, PCA plots often show lines or trajectories within clusters, these can represent the evolution of a malware family over time (e.g. Racoon Stealer), this allows for the tracking of the genealogy of threats.\cite{VisualMalware}
+\subsection{Industrial Control Systems and Operational Technology applications}
+These statistical methods are particularly useful in ICS and OT, which both prioritize availability over confidentiality, in these kind of networks we can identify 3 major anomalies:
+\begin{itemize}
+    \item \textbf{Cyber Anomalies}: Old-fashioned intrusions.
+    \item \textbf{Operation Anomalies}: System malfunctions or misconfigurations.
+    \item \textbf{Service Disruptions}: Availability issues.
+\end{itemize}
+The convergence of IT and OT means that industrial networks are now exposed to a wider range of threats. However, OT traffic is often more regular and deterministic than IT traffic (e.g., a sensor polling a valve every 500ms). This regularity actually makes statistical anomaly detection highly effective. Deviations from the strict, deterministic patterns of industrial protocols (like Modbus or DNP3) are easier to detect using statistical baselines than the chaotic traffic of a corporate web network.\cite{AnDetection}
 
 
 
