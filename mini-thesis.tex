@@ -59,7 +59,6 @@ Anomaly detection is rooted in the statistical hypothesis that malicious activit
 As statistical methods evolved, they gave rise to Machine Learning (ML) and Artificial Intelligence (AI), which are essentially statistical inference engines operating at scale. AI has become a powerful tool for defense, capable of ingesting terabytes of log data to identify subtle correlations that are impossible to spot for a human analysts\cite{MLsurvey}.AI-driven statistical anomaly detection has been shown to outperform traditional analytical techniques in mitigating cybersecurity risks in complex environments like wireless networks\cite{StatAn}.\\\\
 However, this reliance on AI introduces a recursive vulnerability: the statistical models themselves are now targets. We are witnessing the rise of Adversarial Machine Learning (AML), where attackers exploit the probabilistic nature of AI. By carefully crafting inputs that are statistically indistinguishable from benign data to a human but catastrophic to a model's mathematical logic, attackers can blind surveillance systems or cause autonomous vehicles to misinterpret stop signs\cite{OnTheStats}\cite{PaloAlto1}.\\\\
 Thus, the domain of AI security is not merely about securing the software code but about securing the statistical inference process. It involves using advanced statistical tests such as Kernel Density Estimation (KDE), Maximum Mean Discrepancy (MMD), and Benford’s Law to detect when a distribution is being manipulated. The defender must now monitor the monitor, applying statistical tools to ensure that the AI systems protecting the network are not themselves compromised by statistical illusions.\\\\
-\newpage
 \section{Statistical Anomaly Detection in Network Security}
 Network intrusion detection is the practice of monitoring network traffic for suspicious activity and unauthorized access. While rule-based systems (e.g. Snort) look for known byte sequences, statistical anomaly detection techniques build a model of what is considered 
 "normal" traffic for a network and flags certain deviations. This approach has been widely used since the 2000s, and is currently being amplified by the use of AI.
@@ -118,8 +117,43 @@ These statistical methods are particularly useful in ICS and OT, which both prio
 The convergence of IT and OT means that industrial networks are now exposed to a wider range of threats. However, OT traffic is often more regular and deterministic than IT traffic (e.g., a sensor polling a valve every 500ms). This regularity actually makes statistical anomaly detection highly effective. Deviations from the strict, deterministic patterns of industrial protocols (like Modbus or DNP3) are easier to detect using statistical baselines than the chaotic traffic of a corporate web network.\cite{AnDetection}
 
 
-
-
+\section{Time Series Analysis for Network Forecasting}
+While multivariate looks at the relationships between different variables, \textbf{time series analysis} is focused on the relationship between a variable and its past self, network traffic is temporal, and it exhibits trends alongside seasonality and noise, during a normal work day you would normally receive similar day-to-day traffic. So anomaly detection is also a forecasting problem, our statistical model should be able to predict what the traffic should look like at time $t$, based on previously known data,
+the anomaly detection system will then compare this prediction $\hat{Y_t}$ with the observed value $Y_t$, if the error $e_t = |Y_t - \hat{Y_t}|$ exceeds a threshold, then it is considered anomalous, and in turn an alert is raised.\cite{AnDetectionNep}\cite{ARIMAAnDec}\\\\
+\subsection{ARIMA Models}
+\textbf{Auto Regressive Integrated Moving Average} models are widely used for statistical time series forecasting, due to its robust mathematical foundations and the ability to decompose traffic signals into predictable variations and noise.\cite{ARIMAAnDec}\\\\
+An ARIMA model is characterized by the parameters $(p,d,q)$\cite{ARIMAWikipedia}:
+\begin{itemize}
+    \item $p$ (Auto-Regressive order): The number of times the raw observations are differenced to make the signal stationary.
+    \item $d$ (Integrated order): The number of times the raw observations are differenced to make the signal stationary.
+    \item $q$ (Moving Average order): The size of the moving average windows, which captures the relationship between the current observation and past errors.
+\end{itemize}
+The general equation for an ARIMA($p,d,q$) model is essentially a linear regression of the
+current value against past values and past errors. Using the lag operator $B$ (where $B X_t = X_{t-1}$), it is expressed as:
+$$\phi(B) (1 - B)^d X_t = \theta(B) \epsilon_t$$
+\begin{itemize}
+    \item $\phi(B) = 1 - \phi_1 B - \dots - \phi_p B^p$ is the autoregressive polynomial.
+    \item $\theta(B) = 1 + \theta_1 B + \dots + \theta_q B^q$ is the moving average polynomial.
+    \item $(1 - B)^d$ represents the differencing operation performed $d$ times.
+    \item $\epsilon_t$ is the white noise error term\cite{ARIMAWikipedia}
+\end{itemize}
+A prerequisite for ARIMA models it is stationarity, we say that a time series is stationary if its statistical properties (mean,variance,autocorrelation) are constant over time. But network traffic is rarely stationary, most of the time there's a trend or change of variance.\\
+So to solve this we use the Integrated $d$ component, which performs differencing.\cite{I2ARIMA} \cite{ARIMAAnDec}:\\\\
+If $d=1$, the model analyzes the change between consecutive points $Y'_t = Y_t -Y_{t-1}$. This removes linear trends.\\
+If $d=2$, it analyzes the change of the changes, removing quadratic trends.
+Most network traffic analysis uses $d=1$ to account for traffic drift.\cite{I2ARIMA}\\\\
+To actually detect anomalies ARIMA models follow these steps:
+\begin{itemize}
+    \item Training: Fitting the parameters $(\phi, \theta)$ on a window of "clean" historical traffic.
+    \item Forecasting: Predicting the next value $\hat{X}_{t+1}$.
+    \item Residual Analysis: Calculating the error $e_{t+1} = X_{t+1} - \hat{X}_{t+1}$
+    \item Thresholding: If the error is significantly large (e.g., outside the 95\% confidence interval of the prediction), it indicates that the underlying process generating the traffic has changed—likely due to an attack like a DDoS (Distributed Denial of Service) or a massive data exfiltration.
+\end{itemize}
+\subsection{Seasonal ARIMA (SARIMA) and ISP variability}
+Network traffic is seasonal, with the peaks being in the evening (referred to as "streaming hours"), while Corporate traffic peaks in the morning, an ARIMA model might interpret this as an anomaly, therefore to need to account for seasonality, we can extend the ARIMA model to include seasonal components, resulting in the Seasonal ARIMA (SARIMA) model. We
+denote SARIMA as ARIMA$(p,d,q) \times(P,D,Q)_s$, where $s$ is the length of the season (e.g., 24 for hourly data). The modelincludes seasonal autoregressive and moving average terms:
+$$\Phi_P(B^s) \phi(B) \nabla_s^D \nabla^d X_t = \Theta_Q(B^s) \theta(B) w_t$$
+This allows our model to correlate traffic at different times,which is esssential for ISPs. Newer Deep Learning models like LSTM (Long Short-Term Memory) are also being experimented upon due to the fact that they can model non-linear temporal dependencies, but ARIMA remains competitive and has an entire ecosystem built around it. If we were to compare them ARIMA is optimal for most cases while ML DL models are useful in complex environments.\cite{CESNET}\cite{AKvelon}\cite{ARIMAReview}
 
 
 
