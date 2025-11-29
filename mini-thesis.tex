@@ -190,7 +190,21 @@ This formula balances the observed empirical frequency ($x/N$) with the prior be
 To better our spam filters and malware classifiers we can use \textbf{Naive Bayes Classifiers}, which simplifies calculations by assuming that all features are conditionally independent given the class, an assumption which is false most of the time, but its effective\cite{NaiveBayesWikipedia}.\\\\
 The classification rule maximizes the posterior probability:
 $$\hat{y} = \operatorname*{argmax}_{k \in \{1, \dots, K\}} P(C_k) \prod_{i=1}^{n} P(x_i | C_k)$$
-Recently, Naive Bayes Classifiers have been modified to address the Zero Probability problem (where a never-before-seen word creates a probability of 0, wiping out the entire calculation) by changing multiplication operations to addittion or eliminating zero-probability variables.
+Recently, Naive Bayes Classifiers have been modified to address the Zero Probability problem (where a never-before-seen word creates a probability of 0, wiping out the entire calculation) by changing multiplication operations to addition or eliminating zero-probability variables.
+\section{Detecting Adversarial Attacks}
+Increasingly more organizations are relying on AI agents to increase performance, bust this does increase the surface are and vectors of attack, we class these kinds of attacks \textbf{Adversarial Machine Learning attacks}, where attackers can create adversarial example, inputs with perturbations designed to fool statistical models. An example could be modifying the magic bytes of certain files (e.g. PDFs) to bypass neural network classifiers.\\\\
+Detecting these attacks is a problem attributed to \textbf{Statistical Hypothesis Testing}, the defender's goal is to determine whetever an input comes from a natural distribution of data $H_0$ or from an adversarial distribution $H_A$.\\\\
+To actually compare two distributions we can use \textbf{Maximum Mean Discrepancy} (MMD), a non parametric statistical test that can distinguish between two distributions $P$ and $Q$\cite{StatDect}, it embeds the distribution into a Reproducing Kernel Hilbert Space (RKHS)\cite{MMDAdv}. The squared MMD is the distance between the mean embeddings of the two distrubtions in the RKHS:
+$$\text{MMD}^2(P, Q) = \| \mu_P - \mu_Q \|_{\mathcal{H}}^2$$
+In practice we use the empirical estimate based on samples $X = \{x_1, \dots, x_n\}$ (benign data) and $Y = \{y_1, \dots, y_m\}$ (incoming batch of suspicious data):
+$$ \text{MMD}^2(X, Y) = \frac{1}{n^2} \sum_{i,j} k(x_i, x_j) + \frac{1}{m^2} \sum_{i,j} k(y_i, y_j) - \frac{2}{nm} \sum_{i,j} k(x_i, y_j) $$
+Here, $k(\cdot, \cdot)$ is a kernel function (like the Gaussian RBF kernel). If the MMD value exceeds a critical threshold derived from permutation testing, the null hypothesis ($P=Q$) is rejected, and the batch $Y$ is flagged as adversarial\cite{DC-MMD-GAN}.\\\\
+MMD is powerful since it is model agnostic, it doesnt need the know the weights of the neural network, only the distribution of inputs, but it does require a batch of samples to actually become statistically significant, making it not as useful for once and done attacks.
+\subsection{Kernel Density Estimation}
+KDE is used to detect adversarial examples by analyzing the activation patterns within neural networks, while adversarial examples might look like normal data in the input space, they often land in low-probability regions of the feature space\cite{DetectingAdversarialArtifacts}.\\\\
+
+
+
 
 
 
