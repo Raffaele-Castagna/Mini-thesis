@@ -154,7 +154,43 @@ Network traffic is seasonal, with the peaks being in the evening (referred to as
 denote SARIMA as ARIMA$(p,d,q) \times(P,D,Q)_s$, where $s$ is the length of the season (e.g., 24 for hourly data). The modelincludes seasonal autoregressive and moving average terms:
 $$\Phi_P(B^s) \phi(B) \nabla_s^D \nabla^d X_t = \Theta_Q(B^s) \theta(B) w_t$$
 This allows our model to correlate traffic at different times,which is esssential for ISPs. Newer Deep Learning models like LSTM (Long Short-Term Memory) are also being experimented upon due to the fact that they can model non-linear temporal dependencies, but ARIMA remains competitive and has an entire ecosystem built around it. If we were to compare them ARIMA is optimal for most cases while ML DL models are useful in complex environments.\cite{CESNET}\cite{AKvelon}\cite{ARIMAReview}
-
+\section{Bayesian Statistics}
+As we've seen in the previous sections, ARIMA deals with temporal trends, but we also need a way to deal with uncertainty and causality, most of the time defenders do not see an attack directly, but rather evidence of it, Bayesian statistics provides us with a framework to update the probability of a breach as we find new evidence.\\\\
+The biggest challenge in intrusion detection is being able to distinguish true threats from false positives, we can use Bayes' Theorem to calculate the posterior probability of an attack given an alerts:
+$$P(\text{Attack} | \text{Alert}) = \frac{P(\text{Alert} | \text{Attack}) \cdot P(\text{Attack})}{P(\text{Alert})}$$
+This formula highlights what we call the \textbf{base rate fallacy}, even if our Intrusion Detection System (IDS) is highly accurate (high $P(\text{Alert} | \text{Attack})$), if the probability of an actual attack $P(\text{Attack})$ is very low, the posterior probability of an attack given an alert may still be low due to high number of benign events.\\\\
+Suppose that only 1 in 10,000 events is an attack, a system with a 1\% false positive rate will generate 100 false alarms for every 10,000 legitimate events, and the single real attack will be under a mountain of noise. By applying Bayesian analysis security teams account explicitly for these priors and help tune the system to optimize the \textbf{Positive Predictive Value}, rather than raw detection rates.\\\\
+\subsection{Bayesian Networks and Attack Graphs}
+Usually attacks come one after another, as an initial breach only widens the surface area for further attacks, a \textbf{Bayesian Network} is a probabilistic graphical model that represents a set of variables and their conditional dependencies via a DAG. We can further specialize these graphs into what we call \textit{Bayesian Attack Graphs}, where nodes represent system states or vulnerabilities, and edges represent the exploits that transition the attacker from one state to another.\\\\
+Bayesian Attack Graphs allow for the calculation of Reachability Probabilities, the likelihood that an attacker can reach an asset from a certain state.\\\\
+The Static Reachability Probability $P_b(S_i)$ of a node $S_i$ depends on the successful compromise of its parent nodes and the exploitability of the vulnerability itself.\cite{BayesianAttackGraphs}
+Nodes may have a relationship between each:
+\begin{itemize}
+    \item AND Relationship (All preconditions must be met):\\
+    \[
+        P_b(S_i) = P_a(S_i) \cdot \prod_{j=1}^{n} P_b(\text{parent}_j)
+    \]
+    Here, $P_a(S_i)$ represents the intrinsic probability of exploiting the vulnerability (often derived from CVSS scores).
+    \item OR Relationship (Any precondition suffices): $$P_b(S_i) = P_a(S_i) \cdot \left( \text{any precondition probability} \right)$$.
+\end{itemize}
+However though this is useful to understand the subject, these rules are static, and in a real world scenario we need to adapt them to be dynamic, so that it may work even while an attack progresses, therefore we need \textbf{Dynamic Reachability}.\\\\
+If an IDS detects a webserver that has been/is being exploited ($P(S_{web})=1$), this value propagates through the network, dramatically increasing the probability of compromise for downstream nodes.\\
+The dynamic reachability $P_c(S_j | S_i)$ (probability of parent $S_j$ given child $S_i$ is compromised) involves inverse probabilistic reasoning\cite{BayesianAttackGraphs}:
+$$P_c(S_j | S_i) = P(S_i | S_j) \cdot \frac{P_b(S_j)}{P_b(S_i)}$$
+This allows IDS that incorporate Bayesian Attack Graphs to predict the next most likely targets of an attacker and tighten defences.
+\subsection{K2 and Junction Trees}
+Actually querying the graphs (and networks) built by this algorithms is computationally expensive, therefore we use \textbf{K2 algorithm}, an heuristic search method used to learn the structure of Bayesian Networks from data. The algoritm starts from a single node and incrementally adds parents that maximize the network's posterior probability, dealing effectively with incomplete records in security logs\cite{InDectSystemBayesian}.
+Once we have actually built the structure of the Bayesian Network, we can use \textbf{Junction Tree Inference} to actually calculate the probabilities. This algorithm transforms the Bayesian Netowrk intro a tree structure where exact inference is tractable. This allows for the efficient propagation of alerts through the graph to update all probabilities simultaneously.\cite{InDectSystemBayesian}
+\subsection{Parameter Learning and Dirichlet Distributions}
+We still need to define the conditional probabilities in the nework, therefore we need to estimate parameters ($\theta$) from data. Since attack data is spare we estimate this data using a \textbf{Dirichlet Distribution}, which is the conjugate prior to the multinomial distribution.
+The posterior mean for a probability parameter $p$, given prior count $K\lambda$ and observed data count $N$, is\cite{InDectSystemBayesian}:
+$$E(p | \text{data}) = \frac{N}{N+K} \left( \frac{x}{N} \right) + \frac{K}{N+K} \lambda$$
+This formula balances the observed empirical frequency ($x/N$) with the prior belief ($\lambda$). In the early stages we have a small $N$, and the system relies on the prior data from previous engagements. As more data is collected (large $N$), the systems begins to rely on that data. This estimator based on Bayes is mostly needed to stabilize detection systems against the volatility of small samples.
+\subsection{Naive Bayes Classifiers}
+To better our spam filters and malware classifiers we can use \textbf{Naive Bayes Classifiers}, which simplifies calculations by assuming that all features are conditionally independent given the class, an assumption which is false most of the time, but its effective\cite{NaiveBayesWikipedia}.\\\\
+The classification rule maximizes the posterior probability:
+$$\hat{y} = \operatorname*{argmax}_{k \in \{1, \dots, K\}} P(C_k) \prod_{i=1}^{n} P(x_i | C_k)$$
+Recently, Naive Bayes Classifiers have been modified to address the Zero Probability problem (where a never-before-seen word creates a probability of 0, wiping out the entire calculation) by changing multiplication operations to addittion or eliminating zero-probability variables.
 
 
 
