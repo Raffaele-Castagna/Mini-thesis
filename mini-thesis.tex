@@ -7,6 +7,9 @@
 %\usepackage[hidelinks]{hyperref,xcolor} % link di pagina
 \usepackage[bottom]{footmisc} % note appiccicate al fondo della pagina
 \usepackage{float} % per posizionamento immagini
+\usepackage{booktabs}  % For professional looking tables (\toprule, \midrule)
+\usepackage{tabularx}  % For adjustable-width columns that wrap text
+\usepackage{ragged2e}  % For better text alignment within cells
 
 \geometry{tmargin=.75in, bmargin=.75in, lmargin=.75in, rmargin = .75in}  
 
@@ -224,13 +227,109 @@ Alternatively, the Kolmogorov-Smirnov (KS) Statistic measures the maximum distan
 $$D_{KS} = \sup_x | F_{emp}(x) - F_{Benford}(x) |$$
 
 If $D_{KS}$ exceeds a critical value, the image is flagged as synthetic or manipulated.
-
+\newpage
 \section{Statistical Protection of Data}
 Another aspect of security is maintaining the privacy of data, but to utilize the ML and statistical techniques we mentioned, we need to train these models/ data sets, but how can we ensure the privacy of the end user? Suppose we are training our algorithm to detect malware based on previous engagements, we must ensure that the model does not memorize or leak information of the infected users in any way, to do this, \textbf{Differential privacy} is used.\\\\
+A randomized algorithm $\mathcal{M}$ satisfies $\epsilon$-differential privacy if for all adjacent datasets $D$ and $D'$ (which differ by exactly one individual) and for all possible sets of outputs $S$\cite{DPWikipedia}:
+$$P \le e^{\epsilon} \cdot P$$
+$\epsilon$ is the privacy budget, the smaller it is, the more privacy is preserved, at the cost of accuracy.\\\\
+\subsection{Laplace Mechanism}
+To achieve $\epsilon$-differential privacy for a numeric query $f(D)$ (e.g., "What is the average number of failed logins?"), we add noise drawn from the Laplace Distribution.
+The noise $\eta$ is sampled as\cite{DPWikipedia}:
+$$\eta \sim \text{Lap}\left( \frac{\Delta f}{\epsilon} \right)$$
+Where $\Delta f$ is the snesitivity of the function, which is the maximum amount that $f(D)$ can change by adding or removing a person from the data set.
+$$\Delta f = \max_{D, D'} \| f(D) - f(D') \|_1$$
+The Probability Density Function (PDF) of the Laplace distribution is:
+$$f(x | \mu, b) = \frac{1}{2b} \exp \left( -\frac{|x - \mu|}{b} \right)$$
+Where $\mu$ is the mean (set to 0 for noise) and $b = \Delta f / \epsilon$ is the scale parameter.\\\\
+If this specific type of noise is added, organizations can share cybersecurity statistics without risking exposure of clients or victims, which enables threat intelligence that can be used in multiple industries.
+\newpage
+\section{Real World Evaluation of Statistical Models}
+These models are powerful when evaluation is rigorous, but standard metrics such as "Accuracy" are misleading due to the \textbf{Class Imbalance Problem} If we had a network where 99.9\% of traffic is benign, a model that only predicts "SAFE" for everything achieves 99.9\% accuracy but it isn't useful.\\\\
+Therefore we need other metrics, for example the \textbf{Receiver Operating Characteristic} (ROC) curve is standard for evaluating probabilistic classifiers. It plots the True Positive Rate against the False Positive Rate at various treshold settings:
+\begin{itemize}
+    \item TPR $\frac{TP}{TP + FN}$: where FN is False Negatives.
+    \item FPR $\frac{FP}{FP + TN}$: where TN is True Negatives.
+\end{itemize} 
+\begin{center}
+    \includegraphics[width=0.6\textwidth]{images/ROC-curve-780x480.png}
+\end{center}
+The area under the curve summarizes the model's ability to discriminate between normal and malicious traffic, if we have an area under curve of 0.5, it implies random guessing, 1.0 implies perfect detection.\\
+Though for most, the entire curve is not equally important, a high TPR is useless if FPR is even even slightly high (e.g. 5\%), since 5\% of millions of packets result in thousands of false alarms, this causes alert fatigue, so analysts focus on partial AUC in the region of low FPR (e.g., $ < 0.01$).\\\\
+When comparing ROC curves of different models, then curve that hugs the top-left corner is superior, a curve that crosses the diagonal indicates a model that performs worse than random guessing in certain regimes.
+\subsection{Confusion Matrix and Precision Recall}
+To better understand the selection of models while using ROC, the \textbf{Confusion Matrix} is used to drive operational decisions.
+\begin{itemize}
+    \item \textbf{Precision} $\frac{TP}{TP + FP}$. This answers: "When the system alerts, what is the probability it's real?"
+    \item \textbf{Recall} $\frac{TP}{TP + FN}$. This answers: "When it's real, what is the probability the system alerts?"
+\end{itemize}
+But there is a trade off, when we increase the sensitivity (\textit{Recall}) lowers precision, so the detection systems needs to be fine tuned via tresholds (e.g., the $\tau$ in Mahalanobis distance or the $k\sigma$ in ARIMA)\\
+The F1-Score (harmonic mean of Precision and Recall) is often used as a single metric to balance these concerns:
+$$F1 = 2 \cdot \frac{P \cdot R}{P + R}$$
+Recent studies on AI-based statistical anomaly detection in wireless networks have shown validation results with Precision $\approx 0.09$ but Recall $\approx 1.0$, resulting in a low F1 score ($\approx 0.17$).5 This highlights the difficulty of achieving high precision in anomaly detection; catching every threat often requires tolerating a massive number of false positives
+\newpage
+\section{Conclusion}
+In conclusion the transition from signature based to statistical security is not merely a technological upgrade, its a shift in the philosophy of defense.
+\begin{itemize}
+    \item \textbf{Anomaly Detection}:utilizes the geometry of high-dimensional data (Mahalanobis distance, PCA) and the stability of distributions (Gaussian) to identify the "unknown unknowns."
+    \item \textbf{Time Series Analysis}: (ARIMA, SARIMA) leverages temporal continuity to forecast and flag deviations in traffic flow.
+    \item \textbf{Bayes Methods}: provide the logic for reasoning under uncertainty, allowing defenders to update their belief in a compromise based on partial evidence and probabilistic attack graphs.
+    \item \textbf{Adversarial Statistics}: (MMD, KDE, Benford's Law) provide the forensic tools necessary to detect when the AI sentinels themselves are being deceived.
+    \item \textbf{Differential Privacy}: ensures that the data fueling these insights remains secure. For the modern cybersecurity professional, statistics is the language of defense. It allows for the quantification of risk, the detection of subtle threats, and the rigorous validation of security posture. In an era of intelligent, dynamic adversaries, the fortress walls are built not of stone, but of probability distributions.
+\end{itemize}
+\begin{table}[htbp]
+    \centering
+    \caption{Summary of Statistical Techniques in Cybersecurity}
+    \label{tab:stat_security_techniques}
+    \renewcommand{\arraystretch}{1.3} % Increases row height for readability
+    \begin{tabularx}{\textwidth}{@{} >{\raggedright\arraybackslash}p{2.5cm} 
+                                      >{\raggedright\arraybackslash}p{2.5cm} 
+                                      >{\raggedright\arraybackslash}p{2.8cm} 
+                                      X 
+                                      X @{}}
+        \toprule
+        \textbf{Technique} & \textbf{Application} & \textbf{Statistical Basis} & \textbf{Key Strength} & \textbf{Limitation} \\
+        \midrule
+        
+        Grubbs' Test & 
+        Univariate Anomaly Detection & 
+        Normal Distribution ($Z$-scores) & 
+        Simple, fast & 
+        Only works for single variables; assumes normality. \\
 
+        Mahalanobis Distance & 
+        Multivariate Intrusion Detection & 
+        Covariance Matrix ($\mathbf{\Sigma}^{-1}$) & 
+        Handles correlated variables & 
+        Computationally expensive ($O(n^3)$); assumes Gaussian data. \\
 
+        ARIMA/ SARIMA & 
+        Network Traffic Forecasting & 
+        Auto-regression \& Moving Averages & 
+        Handles trends \& seasonality & 
+        Requires stationarity; struggles with highly non-linear data. \\
 
+        Bayesian Networks & 
+        Attack Path Prediction & 
+        Conditional Probabilities (Chain Rule) & 
+        Handles uncertainty \& causality & 
+        Inference is NP-Hard for large graphs; requires prior knowledge. \\
 
+        MMD/KDE & 
+        Adversarial Attack Detection & 
+        Kernel-based Distribution Testing & 
+        Model-agnostic; detects distribution shift & 
+        Requires batches of data; high computational cost. \\
+
+        Benford's Law & 
+        Deepfake / GAN Detection & 
+        First Digit Distribution (Logarithmic) & 
+        Simple, physics-based check & 
+        Only applies to specific transforms (gradients/DCT). \\
+        
+        \bottomrule
+    \end{tabularx}
+\end{table}
 
 \newpage
 \printbibliography
