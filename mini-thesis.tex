@@ -59,6 +59,7 @@ Anomaly detection is rooted in the statistical hypothesis that malicious activit
 As statistical methods evolved, they gave rise to Machine Learning (ML) and Artificial Intelligence (AI), which are essentially statistical inference engines operating at scale. AI has become a powerful tool for defense, capable of ingesting terabytes of log data to identify subtle correlations that are impossible to spot for a human analysts\cite{MLsurvey}.AI-driven statistical anomaly detection has been shown to outperform traditional analytical techniques in mitigating cybersecurity risks in complex environments like wireless networks\cite{StatAn}.\\\\
 However, this reliance on AI introduces a recursive vulnerability: the statistical models themselves are now targets. We are witnessing the rise of Adversarial Machine Learning (AML), where attackers exploit the probabilistic nature of AI. By carefully crafting inputs that are statistically indistinguishable from benign data to a human but catastrophic to a model's mathematical logic, attackers can blind surveillance systems or cause autonomous vehicles to misinterpret stop signs\cite{OnTheStats}\cite{PaloAlto1}.\\\\
 Thus, the domain of AI security is not merely about securing the software code but about securing the statistical inference process. It involves using advanced statistical tests such as Kernel Density Estimation (KDE), Maximum Mean Discrepancy (MMD), and Benford’s Law to detect when a distribution is being manipulated. The defender must now monitor the monitor, applying statistical tools to ensure that the AI systems protecting the network are not themselves compromised by statistical illusions.\\\\
+\newpage
 \section{Statistical Anomaly Detection in Network Security}
 Network intrusion detection is the practice of monitoring network traffic for suspicious activity and unauthorized access. While rule-based systems (e.g. Snort) look for known byte sequences, statistical anomaly detection techniques build a model of what is considered 
 "normal" traffic for a network and flags certain deviations. This approach has been widely used since the 2000s, and is currently being amplified by the use of AI.
@@ -117,6 +118,7 @@ These statistical methods are particularly useful in ICS and OT, which both prio
 The convergence of IT and OT means that industrial networks are now exposed to a wider range of threats. However, OT traffic is often more regular and deterministic than IT traffic (e.g., a sensor polling a valve every 500ms). This regularity actually makes statistical anomaly detection highly effective. Deviations from the strict, deterministic patterns of industrial protocols (like Modbus or DNP3) are easier to detect using statistical baselines than the chaotic traffic of a corporate web network.\cite{AnDetection}
 
 
+\newpage
 \section{Time Series Analysis for Network Forecasting}
 While multivariate looks at the relationships between different variables, \textbf{time series analysis} is focused on the relationship between a variable and its past self, network traffic is temporal, and it exhibits trends alongside seasonality and noise, during a normal work day you would normally receive similar day-to-day traffic. So anomaly detection is also a forecasting problem, our statistical model should be able to predict what the traffic should look like at time $t$, based on previously known data,
 the anomaly detection system will then compare this prediction $\hat{Y_t}$ with the observed value $Y_t$, if the error $e_t = |Y_t - \hat{Y_t}|$ exceeds a threshold, then it is considered anomalous, and in turn an alert is raised.\cite{AnDetectionNep}\cite{ARIMAAnDec}\\\\
@@ -154,6 +156,7 @@ Network traffic is seasonal, with the peaks being in the evening (referred to as
 denote SARIMA as ARIMA$(p,d,q) \times(P,D,Q)_s$, where $s$ is the length of the season (e.g., 24 for hourly data). The modelincludes seasonal autoregressive and moving average terms:
 $$\Phi_P(B^s) \phi(B) \nabla_s^D \nabla^d X_t = \Theta_Q(B^s) \theta(B) w_t$$
 This allows our model to correlate traffic at different times,which is esssential for ISPs. Newer Deep Learning models like LSTM (Long Short-Term Memory) are also being experimented upon due to the fact that they can model non-linear temporal dependencies, but ARIMA remains competitive and has an entire ecosystem built around it. If we were to compare them ARIMA is optimal for most cases while ML DL models are useful in complex environments.\cite{CESNET}\cite{AKvelon}\cite{ARIMAReview}
+\newpage
 \section{Bayesian Statistics}
 As we've seen in the previous sections, ARIMA deals with temporal trends, but we also need a way to deal with uncertainty and causality, most of the time defenders do not see an attack directly, but rather evidence of it, Bayesian statistics provides us with a framework to update the probability of a breach as we find new evidence.\\\\
 The biggest challenge in intrusion detection is being able to distinguish true threats from false positives, we can use Bayes' Theorem to calculate the posterior probability of an attack given an alerts:
@@ -191,6 +194,7 @@ To better our spam filters and malware classifiers we can use \textbf{Naive Baye
 The classification rule maximizes the posterior probability:
 $$\hat{y} = \operatorname*{argmax}_{k \in \{1, \dots, K\}} P(C_k) \prod_{i=1}^{n} P(x_i | C_k)$$
 Recently, Naive Bayes Classifiers have been modified to address the Zero Probability problem (where a never-before-seen word creates a probability of 0, wiping out the entire calculation) by changing multiplication operations to addition or eliminating zero-probability variables.
+\newpage
 \section{Detecting Adversarial Attacks}
 Increasingly more organizations are relying on AI agents to increase performance, bust this does increase the surface are and vectors of attack, we class these kinds of attacks \textbf{Adversarial Machine Learning attacks}, where attackers can create adversarial example, inputs with perturbations designed to fool statistical models. An example could be modifying the magic bytes of certain files (e.g. PDFs) to bypass neural network classifiers.\\\\
 Detecting these attacks is a problem attributed to \textbf{Statistical Hypothesis Testing}, the defender's goal is to determine whetever an input comes from a natural distribution of data $H_0$ or from an adversarial distribution $H_A$.\\\\
@@ -202,7 +206,27 @@ Here, $k(\cdot, \cdot)$ is a kernel function (like the Gaussian RBF kernel). If 
 MMD is powerful since it is model agnostic, it doesnt need the know the weights of the neural network, only the distribution of inputs, but it does require a batch of samples to actually become statistically significant, making it not as useful for once and done attacks.
 \subsection{Kernel Density Estimation}
 KDE is used to detect adversarial examples by analyzing the activation patterns within neural networks, while adversarial examples might look like normal data in the input space, they often land in low-probability regions of the feature space\cite{DetectingAdversarialArtifacts}.\\\\
+The estimator  $\hat{f}(x)$ for a point $x$ given training points $x_i$ is defined as:
+$$ \hat{f}_h(x) = \frac{1}{n} \sum_{i=1}^{n} K_h (x - x_i) = \frac{1}{nh} \sum_{i=1}^{n} K\left( \frac{x - x_i}{h} \right) $$
+Where $K$ is the kernel (often Gaussian) and $h$ is the bandwidth parameter.\\
+A specific defense strategy involves modeling the submanifolds of each class $t$. The density estimate $\hat{f}(x)$ serves as a measure of how far $x$ is from the manifold of class $t$.
+$$ \text{Score}(x) = \frac{1}{|X_t|} \sum_{s \in X_t} \exp \left( - \frac{| F_{n-1}(x) - F_{n-1}(s) |^2}{\sigma^2} \right) $$
+Where $F_{n-1}(x)$ is the output of the penultimate layer. If an input is classified as "Cat" butlies in a low-density region of the "Cat" manifold, it is likely an adversarial example\cite{AdvEasyDect}
+\subsection{Benford's Law}
+Another important statistical tool for AI Security is Benford's Law (a.k.a. The Law of First Digits) IT states taht in many naturally occurring datasets, the leading digit $d$ is not uniformly distributed but follows a logarithmic probability:
+$$P(d) = \log_{10} \left( 1 + \frac{1}{d} \right)$$
+While raw pixels do not follow Benford's Law, the gradients or Discrete Cosine Transform coefficients of natural images often do. When an image is generated by a GAN or modified by an adversarial attack, this natural fingerprint is disturbed. We can actually quantify this via the \textbf{First Digit Distribution} of the image gradients and compare it to the theoretical Benford distribution using statistical divergence metrics, a common metric used is \textbf{Jensen-SHannon Divergence}
+$$ D_{JS}(P |
+| Q) = \frac{1}{2} D_{KL}(P |
+| M) + \frac{1}{2} D_{KL}(Q |
+| M) $$
+Alternatively, the Kolmogorov-Smirnov (KS) Statistic measures the maximum distance between the cumulative distribution functions:
+$$D_{KS} = \sup_x | F_{emp}(x) - F_{Benford}(x) |$$
 
+If $D_{KS}$ exceeds a critical value, the image is flagged as synthetic or manipulated.
+
+\section{Statistical Protection of Data}
+Another aspect of security is maintaining the privacy of data, but to utilize the ML and statistical techniques we mentioned, we need to train these models/ data sets, but how can we ensure the privacy of the end user? Suppose we are training our algorithm to detect malware based on previous engagements, we must ensure that the model does not memorize or leak information of the infected users in any way, to do this, \textbf{Differential privacy} is used.\\\\
 
 
 
